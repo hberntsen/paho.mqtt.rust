@@ -145,17 +145,18 @@ mod build {
 
         // Use cmake to build the C lib
         let ssl = if cfg!(feature = "ssl") { "on" } else { "off" };
+        let link_lib = link_lib();
 
         let mut cmk = cmake::Config::new("paho.mqtt.c/")
             .define("PAHO_BUILD_STATIC", "on")
             .define("PAHO_WITH_SSL", ssl)
+            .build_target(link_lib)
             .build();
 
         // We check if the target library was compiled.
         let cmk_out_dir = cmk.clone();
         let cmk_out_dir = Path::new(&cmk_out_dir).join("lib");
 
-        let link_lib = link_lib();
         let link_file = format!("lib{}.a", link_lib);
 
         let lib = cmk_out_dir.join(Path::new(&link_file));
