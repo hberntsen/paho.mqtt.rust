@@ -130,6 +130,7 @@ mod build {
     use std::{/*env, fs,*/ process};
     use std::path::Path;
     use std::process::Command;
+    use std::env;
 
     pub fn main() {
         // we rerun the build if the `build.rs` file is changed.
@@ -145,6 +146,16 @@ mod build {
 
         // Use cmake to build the C lib
         let ssl = if cfg!(feature = "ssl") { "on" } else { "off" };
+
+        // Causes https://docs.rs/crate/cc/1.0.17/source/src/lib.rs to add the -static flag which breaks the build
+        // We already ensured that we make a static build via 'PAHO_BUILD_STATIC"
+        {
+            let mut features = env::var("CARGO_CFG_TARGET_FEATURE").unwrap_or(String::new());
+            if features.contains("crt-static") {
+                features = features.replace("crt-static", "");
+                env::set_var("CARGO_CFG_TARGET_FEATURE", features);
+            }
+        }
 
         let mut cmk = cmake::Config::new("paho.mqtt.c/")
             .define("PAHO_BUILD_STATIC", "on")
