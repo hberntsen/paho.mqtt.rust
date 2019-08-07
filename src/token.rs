@@ -318,11 +318,20 @@ impl TokenInner {
             unsafe {
                 data.srvr_rsp = match self.req {
                     ServerRequest::Connect => {
-                        ServerResponse::Connect(
-                            CStr::from_ptr((*rsp).alt.connect.serverURI).to_string_lossy().to_string(),
-                            (*rsp).alt.connect.MQTTVersion,
-                            (*rsp).alt.connect.sessionPresent != 0
-                        )
+                        debug!("PTR: {:?} {:?}", rsp, (*rsp).alt.connect.serverURI);
+                        if (*rsp).alt.connect.serverURI as usize > 4 {
+                            ServerResponse::Connect(
+                                CStr::from_ptr((*rsp).alt.connect.serverURI).to_string_lossy().to_string(),
+                                (*rsp).alt.connect.MQTTVersion,
+                                (*rsp).alt.connect.sessionPresent != 0
+                            )
+                        } else {
+                            ServerResponse::Connect(
+                                "?".to_string(),
+                                (*rsp).alt.connect.MQTTVersion,
+                                (*rsp).alt.connect.sessionPresent != 0
+                            )
+                        }
                     },
                     ServerRequest::Subscribe => ServerResponse::Subscribe((*rsp).alt.qos),
                     ServerRequest::SubscribeMany(n) => {
