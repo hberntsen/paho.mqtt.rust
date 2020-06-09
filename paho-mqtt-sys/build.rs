@@ -102,6 +102,16 @@ mod bindings {
         let inc_search = format!("-I{}", inc_dir.display());
         println!("debug:bindgen include path: {}", inc_search);
 
+        let mut clang_args = vec![inc_search];
+        if let Ok(path) = env::var("PKG_CONFIG_SYSROOT_DIR") {
+            clang_args.push(format!("-I{}/../recipe-sysroot-native/usr/bin/arm-poky-linux-gnueabi/../../lib/arm-poky-linux-gnueabi/gcc/arm-poky-linux-gnueabi/9.2.0/include", path));
+            clang_args.push(format!("-I{}/../recipe-sysroot-native/usr/bin/arm-poky-linux-gnueabi/../../lib/arm-poky-linux-gnueabi/gcc/arm-poky-linux-gnueabi/9.2.0/include-fixed", path));
+            clang_args.push(format!("-I{}/../recipe-sysroot-native/usr/bin/arm-poky-linux-gnueabi/../../lib/arm-poky-linux-gnueabi/gcc/arm-poky-linux-gnueabi/9.2.0/include-fixed", path));
+            clang_args.push(format!("-I{}/usr/lib/arm-poky-linux-gnueabi/9.2.0/include", path));
+            clang_args.push(format!("-I{}/usr/include", path));
+        }
+        println!("debug:bindgen additional clang args: {:?}", clang_args);
+
         // The bindgen::Builder is the main entry point
         // to bindgen, and lets you build up options for
         // the resulting bindings.
@@ -111,7 +121,7 @@ mod bindings {
             .trust_clang_mangling(false)
             // The input header we would like to generate
             // bindings for.
-            .header("wrapper.h").clang_arg(inc_search)
+            .header("wrapper.h").clang_args(clang_args.iter())
             // Finish the builder and generate the bindings.
             .generate()
             // Unwrap the Result and panic on failure.
