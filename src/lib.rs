@@ -1,10 +1,11 @@
 // lib.rs
 //
-// This file is part of the Eclipse Paho MQTT Rust Client library.
+// The main library file for `paho-mqtt-sys`.
+// This is the Paho MQTT Rust library low-level C wrapper.
 //
 
 /*******************************************************************************
- * Copyright (c) 2017-2018 Frank Pagliughi <fpagliughi@mindspring.com>
+ * Copyright (c) 2017-2019 Frank Pagliughi <fpagliughi@mindspring.com>
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -19,12 +20,6 @@
  *    Frank Pagliughi - initial implementation and documentation
  *******************************************************************************/
 
-//! This is the Eclipse Paho MQTT client library for the Rust language.
-//!
-
-// TODO: Uncomment this and build to check the documentation coverage
-//#![deny(missing_docs)]
-
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
@@ -32,89 +27,248 @@
 // Temporary
 #![allow(dead_code)]
 
-extern crate futures;
-extern crate futures_timer;
+use std::ptr;
+use std::fmt;
+use std::os::raw::{c_char, c_int};
 
-#[macro_use]
-extern crate log;
+include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
-extern crate paho_mqtt_sys as ffi;
+// The following 'Default' trait implementations contain initializations
+// for the structures from the Paho C library. Each of those structs
+// contains an initializer macro in MQTTAsync.h.
+// By convention, these default initializers match those macros from the
+// C library.
 
-pub use async_client::*;        //{AsyncClient, AsyncClientBuilder};
-pub use client::*;              //{Client, ClientBuilder};
-pub use create_options::*;      //{CreateOptions, CreateOptionsBuilder};
-pub use connect_options::*;     //{ConnectOptions, ConnectOptionsBuilder, MQTT_VERSION_3_1_1, ...};
-pub use will_options::*;        //{WillOptions, WillOptionsBuilder};
-pub use ssl_options::*;         //{SslOptions, SslOptionsBuilder};
-pub use disconnect_options::*;  //{DisconnectOptions, DisconnectOptionsBuilder};
-pub use subscribe_options::*;   //{SubscribeOptions};
-pub use response_options::*;    //{ResponseOptions};
-pub use server_response::*;     //{ServerResponse, CommandResponse};
-pub use properties::*;          //{Property, Properties};
-pub use message::*;             //{Message, MessageBuilder};
-pub use token::*;               //{Token}
-pub use topic::*;               //{Topic}
-pub use types::*;               //{ReasonCode}
-pub use client_persistence::*;
-pub use errors::*;              //{MqttResult, MqttError, ErrorKind};
+/////////////////////////////////////////////////////////////////////////////
+// Client creation
 
-//pub mod mqtt;
-mod macros;
+impl Default for MQTTAsync_createOptions {
+    fn default() -> MQTTAsync_createOptions {
+        MQTTAsync_createOptions {
+            struct_id: [ b'M' as c_char, b'Q' as c_char, b'C' as c_char, b'O' as c_char],
+            struct_version: 1,
+            sendWhileDisconnected: 0,
+            maxBufferedMessages: 100,
+            MQTTVersion: MQTTVERSION_DEFAULT as c_int,
+        }
+    }
+}
 
-/// The asynchronous API
-pub mod async_client;
+impl MQTTAsync_createOptions {
+    pub fn default_v5() -> MQTTAsync_createOptions {
+        MQTTAsync_createOptions {
+            MQTTVersion: MQTTVERSION_5 as c_int,
+            ..MQTTAsync_createOptions::default()
+        }
+    }
+}
 
-/// The synchronous API
-pub mod client;
+/////////////////////////////////////////////////////////////////////////////
+// Connecting
 
-/// Client creation options
-pub mod create_options;
+// Note that this sets up the defaults for MQTT 3.1.1 or earlier.
+// The application must specifically set the version to 5 for MQTT v5, and
+// disable clean sessions (at a minimum).
 
-/// Options for connecting to the server.
-pub mod connect_options;
+impl Default for MQTTAsync_connectOptions {
+    fn default() -> MQTTAsync_connectOptions {
+        MQTTAsync_connectOptions {
+            struct_id: [ b'M' as c_char, b'Q' as c_char, b'T' as c_char, b'C' as c_char],
+            struct_version: 6,
+            keepAliveInterval: 60,
+            cleansession: 1,
+            maxInflight: 65535,
+            will: ptr::null_mut(),
+            username: ptr::null(),
+            password: ptr::null(),
+            connectTimeout: 30,
+            retryInterval: 0,
+            ssl: ptr::null_mut(),
+            onSuccess: None,
+            onFailure: None,
+            context: ptr::null_mut(),
+            serverURIcount: 0,
+            serverURIs: ptr::null(),
+            MQTTVersion: 0,
+            automaticReconnect: 0,
+            minRetryInterval: 1,
+            maxRetryInterval: 60,
+            binarypwd: MQTTAsync_connectOptions__bindgen_ty_1 {
+                len: 0,
+                data: ptr::null(),
+            },
+            cleanstart: 0,
+            connectProperties: ptr::null_mut(),
+            willProperties: ptr::null_mut(),
+            onSuccess5: None,
+            onFailure5: None,
+        }
+    }
+}
 
-/// Connect options for the Last Will and Testament (LWT) message.
-pub mod will_options;
+/////////////////////////////////////////////////////////////////////////////
+// Options
 
-/// Connect options for creating secure connections to the server.
-pub mod ssl_options;
+impl Default for MQTTAsync_willOptions {
+    fn default() -> MQTTAsync_willOptions {
+        MQTTAsync_willOptions {
+            struct_id: [ b'M' as c_char, b'Q' as c_char, b'T' as c_char, b'W' as c_char ],
+            struct_version: 1,  // 1 indicates binary payload
+            topicName: ptr::null(),
+            message: ptr::null(),
+            retained: 0,
+            qos: 0,
+            payload: MQTTAsync_willOptions__bindgen_ty_1 {
+                len: 0,
+                data: ptr::null(),
+            }
+        }
+    }
+}
 
-/// Options for disconnecting from the server.
-pub mod disconnect_options;
+impl Default for MQTTAsync_SSLOptions {
+    fn default() -> MQTTAsync_SSLOptions {
+        MQTTAsync_SSLOptions {
+            struct_id: [ b'M' as c_char, b'Q' as c_char, b'T' as c_char, b'S' as c_char ],
+            struct_version: 0,
+            trustStore: ptr::null(),
+            keyStore: ptr::null(),
+            privateKey: ptr::null(),
+            privateKeyPassword: ptr::null(),
+            enabledCipherSuites: ptr::null(),
+            enableServerCertAuth: 1,
+            sslVersion: MQTT_SSL_VERSION_DEFAULT as i32,
+            verify: 0,
+            CApath: ptr::null(),
+            ssl_error_cb: None,
+            ssl_error_context: ptr::null_mut(),
+            ssl_psk_cb: None,
+            ssl_psk_context: ptr::null_mut(),
+            disableDefaultTrustStore: 0,
+        }
+    }
+}
 
-/// Options for subscribing to topics
-pub mod subscribe_options;
+// New for MQTT v5
+impl Default for MQTTSubscribe_options {
+    fn default() -> MQTTSubscribe_options {
+        MQTTSubscribe_options {
+            struct_id: [ b'M' as c_char, b'Q' as c_char, b'S' as c_char, b'O' as c_char ],
+            struct_version: 0,
+            noLocal: 0,
+            retainAsPublished: 0,
+            retainHandling: 0,
+        }
+    }
+}
 
-/// Options for responses coming back from the C lib.
-pub mod response_options;
 
-/// Responses coming back from the server.
-pub mod server_response;
+impl Default for MQTTAsync_responseOptions {
+    fn default() -> MQTTAsync_responseOptions {
+        MQTTAsync_responseOptions {
+            struct_id: [ b'M' as c_char, b'Q' as c_char, b'T' as c_char, b'R' as c_char ],
+            struct_version: 1,
+            onSuccess: None,
+            onFailure: None,
+            context: ptr::null_mut(),
+            token: 0,
+            onSuccess5: None,
+            onFailure5: None,
+            properties: MQTTProperties::default(),
+            subscribeOptions: MQTTSubscribe_options::default(),
+            subscribeOptionsCount: 0,
+            subscribeOptionsList: ptr::null_mut(),
+        }
+    }
+}
 
-/// MQTT 5v properties.
-pub mod properties;
+/////////////////////////////////////////////////////////////////////////////
+// MQTTProperties (new for v5)
 
-/// The message object
-pub mod message;
+impl fmt::Debug for MQTTProperty {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // TODO: Implement this
+        write!(f, "[]")
+    }
+}
 
-/// Tokens to monitor asynchronous operations
-pub mod token;
+impl Default for MQTTProperties {
+    fn default() -> MQTTProperties {
+        MQTTProperties {
+            count: 0,
+            max_count: 0,
+            length: 0,
+            array: ptr::null_mut(),
+        }
+    }
+}
 
-/// Options for creating topic objects that are associated with a
-/// particular server.
-pub mod topic;
 
-/// Miscelaneous types
-pub mod types;
+impl Default for MQTTLenString {
+    fn default() -> MQTTLenString {
+        MQTTLenString { len: 0, data: ptr::null_mut(), }
+    }
+}
 
-/// Definitions for creating user-defined persistence.
-pub mod client_persistence;
+/////////////////////////////////////////////////////////////////////////////
+// Messages
 
-/// The MQTT errors
-pub mod errors;
+impl Default for MQTTAsync_message {
+    fn default() -> MQTTAsync_message {
+        MQTTAsync_message {
+            struct_id: [ b'M' as c_char, b'Q' as c_char, b'T' as c_char, b'M' as c_char ],
+            struct_version: 1,
+            payloadlen: 0,
+            payload: ptr::null_mut(),
+            qos: 0,
+            retained: 0,
+            dup: 0,
+            msgid: 0,
+            properties: MQTTProperties::default(),
+        }
+    }
+}
 
-/// Utility for creating string collections (to pass to the C library).
-pub mod string_collection;
+/////////////////////////////////////////////////////////////////////////////
+// Disconnecting
+
+impl Default for MQTTAsync_disconnectOptions {
+    fn default() -> MQTTAsync_disconnectOptions {
+        MQTTAsync_disconnectOptions {
+            struct_id: [ b'M' as c_char, b'Q' as c_char, b'T' as c_char, b'D' as c_char],
+            struct_version: 0,
+            timeout: 0,
+            onSuccess: None,
+            onFailure: None,
+            context: ptr::null_mut(),
+            properties: MQTTProperties::default(),
+            reasonCode: 0,
+            onSuccess5: None,
+            onFailure5: None,
+        }
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+impl Default for MQTTClient_persistence {
+    fn default() -> Self {
+        MQTTClient_persistence {
+            context: ptr::null_mut(),
+            popen: None,
+            pclose: None,
+            pput: None,
+            pget: None,
+            premove: None,
+            pkeys: None,
+            pclear: None,
+            pcontainskey: None,
+        }
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Unit Tests
 
 #[cfg(test)]
 mod tests {
