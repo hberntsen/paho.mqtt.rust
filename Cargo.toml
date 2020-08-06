@@ -18,7 +18,7 @@ This is part of the official Eclipse Paho Rust Client Library.
 #   "ssl" - Enable SSL features and link to the Paho C library that uses SSL.
 
 [features]
-default = ["bundled", "ssl"]
+default = ["bundled", "build_bindgen"]
 bundled = ["cmake"]
 build_bindgen = ["bindgen"]
 ssl = []
