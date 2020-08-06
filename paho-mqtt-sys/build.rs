@@ -53,8 +53,24 @@
 // TODO: Assuming the proper installed version of the library is problematic.
 //      We should check that the version is correct, if possible.
 
+use std::io::Write;
+extern crate log;
+use log::LevelFilter;
+
 fn main() {
+
+    env_logger::builder()
+        .filter_level(LevelFilter::Trace)
+        .format(|buf, record| {
+            writeln!(buf, "cargo:warning={}: {}", record.level(), record.args())
+        })
+        .init();
+    
+    log::trace!("test");
+    log::error!("test2");
     build::main();
+
+
 }
 
 // Determine if we're usine SSL or not, by feature request.
