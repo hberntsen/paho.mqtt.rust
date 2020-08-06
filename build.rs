@@ -76,14 +76,8 @@ fn main() {
 // Determine if we're usine SSL or not, by feature request.
 // This determines which Paho C library we link to.
 fn link_lib() -> &'static str {
-    if cfg!(feature = "ssl") {
-        println!("debug:link Using SSL library");
-        "paho-mqtt3as-static"
-    }
-    else {
         println!("debug:link Using non-SSL library");
         "paho-mqtt3a-static"
-    }
 }
 
 #[cfg(not(feature = "build_bindgen"))]
@@ -190,7 +184,7 @@ mod build {
         }
 
         // Use and configure cmake to build the Paho C lib
-        let ssl = if cfg!(feature = "ssl") { "on" } else { "off" };
+        let ssl = { "off" };
 
         let mut cmk_cfg = cmake::Config::new("paho.mqtt.c/");
         cmk_cfg
@@ -198,9 +192,6 @@ mod build {
             .define("PAHO_ENABLE_TESTING", "off")
             .define("PAHO_WITH_SSL", ssl);
 
-        if let Ok(ssl_sp) = env::var("OPENSSL_SEARCH_PATH") {
-            cmk_cfg.define("OPENSSL_SEARCH_PATH", format!("{}", ssl_sp));
-        }
 
         // 'cmk' is a PathBuf to the cmake install directory
         let cmk = cmk_cfg.build();
@@ -241,12 +232,6 @@ mod build {
         println!("debug:Using Paho C headers at: {}", inc_dir.display());
 
         bindings::place_bindings(&inc_dir);
-
-        // Link in the SSL libraries if configured for it.
-        if cfg!(feature = "ssl") {
-            println!("cargo:rustc-link-lib=ssl");
-            println!("cargo:rustc-link-lib=crypto");
-        }
 
         // we add the folder where all the libraries are built to the path search
         println!("cargo:rustc-link-search=native={}", lib_dir.display());
