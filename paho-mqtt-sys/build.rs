@@ -117,6 +117,7 @@ mod bindings {
         // to bindgen, and lets you build up options for
         // the resulting bindings.
         let bindings = bindgen::Builder::default()
+            .detect_include_paths(true)
             // Older clang versions (~v3.6) improperly mangle the functions.
             // We shouldn't require mangling for straight C library. I think.
             .trust_clang_mangling(false)
