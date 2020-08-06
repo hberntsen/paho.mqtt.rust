@@ -105,10 +105,11 @@ mod bindings {
         let mut clang_args = vec![inc_search];
         if let Ok(path) = env::var("PKG_CONFIG_SYSROOT_DIR") {
             //clang_args.push(format!("-I{}/../recipe-sysroot-native/usr/bin/arm-poky-linux-gnueabi/../../lib/arm-poky-linux-gnueabi/gcc/arm-poky-linux-gnueabi/9.2.0/include", path));
+            clang_args.push(format!("-I{}/../recipe-sysroot-native/usr/lib/llvm-rust/lib/clang/9.0.1/include", path));
             //clang_args.push(format!("-I{}/../recipe-sysroot-native/usr/bin/arm-poky-linux-gnueabi/../../lib/arm-poky-linux-gnueabi/gcc/arm-poky-linux-gnueabi/9.2.0/include-fixed", path));
             //clang_args.push(format!("-I{}/usr/lib/arm-poky-linux-gnueabi/9.2.0/include", path));
             clang_args.push(format!("-I{}/usr/include", path));
-            clang_args.push(format!("-I{}/usr/include/linux", path));
+            //clang_args.push(format!("-I{}/usr/include/linux", path));
         }
         println!("debug:bindgen additional clang args: {:?}", clang_args);
 
