@@ -116,14 +116,16 @@ mod bindings {
         // The bindgen::Builder is the main entry point
         // to bindgen, and lets you build up options for
         // the resulting bindings.
-        let bindings = bindgen::Builder::default()
+        let builder = bindgen::Builder::default()
             .detect_include_paths(true)
             // Older clang versions (~v3.6) improperly mangle the functions.
             // We shouldn't require mangling for straight C library. I think.
             .trust_clang_mangling(false)
             // The input header we would like to generate
             // bindings for.
-            .header("wrapper.h").clang_args(clang_args.iter())
+            .header("wrapper.h").clang_args(clang_args.iter());
+        println!("debug: builder {:?}", builder);
+        let bindings = builder
             // Finish the builder and generate the bindings.
             .generate()
             // Unwrap the Result and panic on failure.
